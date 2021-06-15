@@ -3,13 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <openssl/rsa.h>
-#include <openssl/x509.h>
-#include <enclave-tls/crypto_wrapper.h>
 #include <enclave-tls/log.h>
-#include <enclave-tls/cert.h>
-
-#define RSA_PUBKEY_3072_RAW_LEN		398
+#include <enclave-tls/crypto_wrapper.h>
+#include "opencrypt.h"
 
 #define OID(N) { 0x2A, 0x86, 0x48, 0x86, 0xF8, 0x4D, 0x8A, 0x39, (N) }
 
@@ -20,97 +16,7 @@ static const unsigned char iasSigOid[] = OID(0x05);
 static const unsigned char quoteOid[] = OID(0x06);
 static const unsigned char lareportOid[] = OID(0x0e);
 
-struct opencrypt_ctx {
-	RSA *key;
-};
-
-static crypto_wrapper_err_t init(crypto_wrapper_ctx_t *ctx)
-{
-	struct opencrypt_ctx *octx;
-
-	octx = calloc(1, sizeof(*octx));
-	if (!octx)
-		return -CRYPTO_WRAPPER_ERR_NO_MEM;
-
-	ctx->crypto_private = octx;
-
-	return CRYPTO_WRAPPER_ERR_NONE;
-}
-
-static crypto_wrapper_err_t __secured gen_privkey(crypto_wrapper_ctx_t *ctx,
-				enclave_tls_cert_algo_t algo,
-				uint8_t *privkey_buf, unsigned int *privkey_len)
-{
-	struct opencrypt_ctx *octx;
-	unsigned char buffer[4096];
-	unsigned char *der = buffer;
-	BIGNUM e;
-	int len;
-	int ret;
-
-	if (!ctx || !privkey_len)
-		return -CRYPTO_WRAPPER_ERR_INVALID;
-	if (privkey_buf == NULL && *privkey_len == 0)
-		return -CRYPTO_WRAPPER_ERR_INVALID;
-	if (algo != ENCLAVE_TLS_CERT_ALGO_RSA_3072_SHA256)
-		return -CRYPTO_WRAPPER_ERR_UNSUPPORTED_ALGO;
-
-	octx = ctx->crypto_private;
-
-	ret = -CRYPTO_WRAPPER_ERR_NO_MEM;
-	octx->key = RSA_new();
-	if (octx->key == NULL)
-		goto err;
-
-	ret = -CRYPTO_WRAPPER_ERR_PRIV_KEY_LEN;
-	BN_set_word(&e, 65537);
-	if (!RSA_generate_key_ex(octx->key, 3072, &e, NULL))
-		goto err;
-
-	ret = -CRYPTO_WRAPPER_ERR_RSA_KEY_LEN;
-	if (privkey_buf)
-		der = privkey_buf;
-	len = i2d_RSAPrivateKey(&octx->key, &der);
-	if (len < 0)
-		goto err;
-
-	*privkey_len = len;
-	return CRYPTO_WRAPPER_ERR_NONE;
-
-err:
-	if (octx->key) {
-		RSA_free(octx->key);
-		octx->key = NULL;
-	}
-	return ret;
-}
-
-static crypto_wrapper_err_t gen_pubkey_hash(crypto_wrapper_ctx_t *ctx,
- 			enclave_tls_cert_algo_t algo, uint8_t *hash)
-{
-	struct opencrypt_ctx *octx;
-	unsigned char buffer[4096];
-	unsigned char *der = buffer;
-	SHA256_CTX md;
-	int len;
-
-	if (!ctx || !hash)
-		return -CRYPTO_WRAPPER_ERR_INVALID;
-	if (algo != ENCLAVE_TLS_CERT_ALGO_RSA_3072_SHA256)
-		return -CRYPTO_WRAPPER_ERR_UNSUPPORTED_ALGO;
-
-	octx = ctx->crypto_private;
-
-	len = i2d_RSAPublicKey(&octx->key, &der);
-	if (len != RSA_PUBKEY_3072_RAW_LEN)
-		return -CRYPTO_WRAPPER_ERR_PUB_KEY_LEN;
-
-	SHA256(buffer, len, hash);
-
-	return CRYPTO_WRAPPER_ERR_NONE;
-}
-
-static crypto_wrapper_err_t gen_cert(crypto_wrapper_ctx_t *ctx,
+crypto_wrapper_err_t opencrypt_gen_cert(crypto_wrapper_ctx_t *ctx,
  			       enclave_tls_cert_info_t *cert_info)
 {
 	struct opencrypt_ctx *octx;
@@ -237,31 +143,4 @@ err:
 	if (pkey)
 		EVP_PKEY_free(pkey);
 	return ret;
-}
-
-static crypto_wrapper_err_t cleanup(crypto_wrapper_ctx_t *ctx)
-{
-	struct opencrypt_ctx *octx = ctx->crypto_private;
-	free(octx);
-	return CRYPTO_WRAPPER_ERR_NONE;
-}
-
-static const crypto_wrapper_opts_t opencrypt_opts = {
-	.api_version		= CRYPTO_WRAPPER_API_VERSION_DEFAULT,
-	.name			= "opencrypt",
-	.priority		= 20,
-	.init			= init,
-	.gen_privkey		= gen_privkey,
-	.gen_pubkey_hash	= gen_pubkey_hash,
-	.gen_cert		= gen_cert,
-	.cleanup		= cleanup,
-};
-
-static void __attribute__((constructor)) libcrypto_wrapper_wolfcrypt_init(void)
-{
-	ETLS_DEBUG("called\n");
-
-	crypto_wrapper_err_t err = crypto_wrapper_register(&opencrypt_opts);
-	if (err != CRYPTO_WRAPPER_ERR_NONE)
-		ETLS_ERR("failed to register the crypto wrapper 'opencrypt' %#x\n", err);
 }
