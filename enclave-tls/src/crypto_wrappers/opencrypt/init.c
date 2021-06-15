@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <stdlib.h>
 #include <enclave-tls/log.h>
 #include <enclave-tls/crypto_wrapper.h>
 #include "opencrypt.h"
