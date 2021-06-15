@@ -51,11 +51,13 @@ ifeq ($(Tls_Wolfssl),1)
   instance_cflags += $(Wolfssl_Cflags) -I$(Build_Incdir)
 endif
 
+ifeq ($(Sgx_Enclave),1)
 $(Topdir)/samples/sgx-stub-enclave/sgx_stub_u.o:
 	make -C $(Topdir)/samples/sgx-stub-enclave
+endif
 
 $(instance_objs): %.o: %.c
-	$(CC) -c $(instance_cflags) -o $@ $<
+	$(CC) -g -c $(instance_cflags) -o $@ $<
 
 $(Build_Libdir)/libenclave_tls.so:
 	make -C $(Enclave_Tls_Srcdir) $(Build_Libdir)/libenclave_tls.so
@@ -90,6 +92,10 @@ endif
 ifeq ($(Tls_Wolfssl),1)
   Build_Instance_Dependencies += $(Build_Libdir)/libwolfssl.so
 endif
+ifeq ($(Tls_Openssl),1)
+ # Build_Instance_Dependencies += $(Build_Libdir)/libssl.so
+# Build_Instance_Dependencies += /user/lib64/libssl.so
+endif
 # All instances always depend on libenclave_tls.so
 Build_Instance_Dependencies += $(Build_Libdir)/libenclave_tls.so
 
@@ -98,7 +104,7 @@ target := $(Build_Libdir)/$(Enclave_Tls_Instance_Type)s/$(instance_lib)
 #$(target): $(Dependencies) $(instance_objs)
 $(target): $(Build_Instance_Dependencies) $(instance_objs)
 	$(INSTALL) -d -m 0755 $(dir $@)
-	$(LD) $(Enclave_Tls_Ldflags) -soname=$(notdir $@).$(Major_Version) -o $@ $^ $(Enclave_Tls_Extra_Ldflags)
+	$(LD) $(Enclave_Tls_Ldflags) -lssl -lcrypto -soname=$(notdir $@).$(Major_Version) -o $@ $^ $(Enclave_Tls_Extra_Ldflags)
 
 Build_Instance: $(target)
 

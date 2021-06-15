@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _WOLFSSL_PRIVATE_H
-#define _WOLFSSL_PRIVATE_H
+#ifndef _OPENSSL_PRIVATE_H
+#define _OPENSSL_PRIVATE_H
 
-#include <wolfssl/options.h>
+/*#include <wolfssl/options.h>
 #include <wolfssl/ssl.h>
 #include <wolfssl/wolfcrypt/rsa.h>
 #include <wolfssl/wolfcrypt/asn.h>
@@ -15,12 +15,14 @@
 #include <wolfssl/wolfcrypt/sha256.h>
 #include <wolfssl/wolfcrypt/types.h>
 #include <wolfssl/wolfcrypt/hash.h>
-#include <wolfssl/wolfcrypt/signature.h>
+#include <wolfssl/wolfcrypt/signature.h>*/
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 typedef struct {
-	WOLFSSL_CTX *ws;
-	WOLFSSL *ssl;
-} wolfssl_ctx_t;
+	SSL_CTX *ws;
+	SSL *ssl;
+} openssl_ctx_t;
 
 extern const uint8_t ias_response_body_oid[];
 extern const uint8_t ias_root_cert_oid[];
@@ -36,7 +38,7 @@ extern const uint8_t tcb_sign_chain_oid[];
 extern const size_t ias_oid_len;
 extern const uint8_t la_report_oid[];
 
-static inline void print_wolfssl_err(WOLFSSL *ssl)
+static inline void print_wolfssl_err(SSL *ssl)
 {
 	char buf[128];
 	int err = wolfSSL_get_error(ssl, 0);

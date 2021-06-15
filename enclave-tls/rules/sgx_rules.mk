@@ -102,8 +102,8 @@ $(unsigned_enclave): $(App_Name)_t.o $(Enclave_Static_Lib)
 #	$(CXX) $(sgx_common_cxxflags) $(enclave_ldflags) $^ -o $@
 	@echo "LINK =>  $@"
 
-ifeq ($(Tls_Wolfssl),1)
-  Enclave_Cflags += $(Wolfssl_Sgx_Cflags)
+ifeq ($(Tls_Openssl),1)
+  Enclave_Cflags += $(Openssl_Sgx_Cflags)
 endif
 # Add macro HAVE_TM_TYPE to avoid compiling error about struct tm re-definition
 $(App_Name)_t.o: $(App_Name)_t.c

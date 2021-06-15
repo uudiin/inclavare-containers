@@ -61,7 +61,7 @@ Major_Version := $(shell echo $(version) | cut -d '.' -f1)
 Minor_Version := $(shell echo $(version) | cut -d '.' -f2)
 Patch_Version := $(shell echo $(version) | cut -d '.' -f3)
 
-Debug ?=
+Debug ?= 1
 
 CC ?= gcc
 CXX ?= g++

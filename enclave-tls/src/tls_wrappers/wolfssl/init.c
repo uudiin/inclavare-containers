@@ -5,9 +5,9 @@
 
 #include <enclave-tls/log.h>
 #include <enclave-tls/tls_wrapper.h>
-#include "wolfssl.h"
+#include "openssl.h"
 
-tls_wrapper_err_t wolfssl_init(tls_wrapper_ctx_t *ctx)
+tls_wrapper_err_t openssl_init(tls_wrapper_ctx_t *ctx)
 {
 	ETLS_DEBUG("ctx %p\n", ctx);
 

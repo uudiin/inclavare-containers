@@ -8,7 +8,7 @@ ifneq ($(__Build_Env_Imported),1)
 endif
 
 ifdef SGX
-  include $(Topdir)/rules/wolfssl_env.mk
+  include $(Topdir)/rules/openssl_env.mk
   Enclave_Tls_Cflags += \
     $(Wolfssl_Cflags) -DWOLFSSL_SGX_WRAPPER \
     -I$(Topdir)/samples/sgx-stub-enclave \
@@ -21,8 +21,8 @@ ifdef SGX
 endif
 
 libenclave_tls := $(notdir $(Enclave_Tls_Lib))
-crypto_wrappers := $(addsuffix .so,$(addprefix libcrypto_wrapper_,nullcrypto wolfcrypt))
-tls_wrappers := $(addsuffix .so,$(addprefix libtls_wrapper_,nulltls wolfssl))
+crypto_wrappers := $(addsuffix .so,$(addprefix libcrypto_wrapper_,nullcrypto))
+tls_wrappers := $(addsuffix .so,$(addprefix libtls_wrapper_,nulltls openssl))
 attesters := $(addsuffix .so,$(addprefix libattester_,nullattester))
 verifiers := $(addsuffix .so,$(addprefix libverifier_,nullverifier))
 
@@ -65,8 +65,8 @@ ifdef SGX
   include $(Topdir)/rules/wolfssl_env.mk
 endif
 
-$(Build_Libdir)/libwolfssl.so $(Build_Libdir)/libwolfssl_sgx.a:
-	make -C $(Wolfssl_Root) $@
+#$(Build_Libdir)/libssl.so: #$(Build_Libdir)/libwolfssl_sgx.a:
+#	make -C $(Openssl_Root) $@
 
 libenclave_tls_objs := $(libenclave_tls_files:.c=.o)
 $(Build_Libdir)/$(libenclave_tls): $(Build_Dependencies) $(libenclave_tls_objs)
@@ -74,9 +74,9 @@ $(Build_Libdir)/$(libenclave_tls): $(Build_Dependencies) $(libenclave_tls_objs)
 	$(LD) $(Enclave_Tls_Ldflags) -soname=$(notdir $@).$(Major_Version) -o $@ $(libenclave_tls_objs) -ldl $(Enclave_Tls_Extra_Ldflags)
 
 $(libenclave_tls_objs): %.o: %.c
-	$(CC) -c $(Enclave_Tls_Cflags) -o $@ $<
+	$(CC) -c -g $(Enclave_Tls_Cflags) -o $@ $<
 
-$(addprefix $(Build_Libdir)/,$(crypto_wrappers) $(tls_wrappers)):
+$(addprefix $(Build_Libdir)/, $(crypto_wrappers) $(tls_wrappers)):
 	@n=$(patsubst lib%.so,%,$(notdir $@)); \
 	dir=`echo $$n | cut -d '_' -f1-2`; \
 	name=$${n#$${dir}_}; \
@@ -88,7 +88,7 @@ $(addprefix $(Build_Libdir)/,$(attesters) $(verifiers)):
 	name=$${n#$${dir}_}; \
 	make -C $(this_dir)/$${dir}s/$$name
 
-wolfssl_dir := $(this_dir)/external/wolfssl
+#openssl_dir := $(this_dir)/external/openssl
 
 install_libenclave_tls: $(Build_Libdir)/$(libenclave_tls)
 	$(INSTALL) -d -m 0755 $(Enclave_Tls_Libdir)
@@ -114,16 +114,16 @@ install: all
 	$(INSTALL) -d -m 0755 $(Enclave_Tls_Libdir)/verifiers
 	$(INSTALL) -m 0755 $(Build_Libdir)/verifiers/libverifier_* \
 	  $(Enclave_Tls_Libdir)/verifiers
-	make -C $(wolfssl_dir) install
+	#make -C $(openssl_dir) install
 
 uninstall:
 	@rm -rf $(Enclave_Tls_Root)
 
 Cleans += $(Build_Libdir) $(libenclave_tls_objs) $(ocall_objs) 
-Clean_Dirs += crypto_wrappers tls_wrappers attesters verifiers external/wolfssl
+Clean_Dirs += tls_wrappers attesters verifiers
 
 mrproper:
-	@make -C $(this_dir)/external/wolfssl mrproper
+	@make -C $(this_dir)/external/openssl mrproper
 
 Extra_Phonies += install_libenclave_tls
 
