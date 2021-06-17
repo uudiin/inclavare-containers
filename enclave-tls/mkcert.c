@@ -49,6 +49,7 @@ static RSA *gen_privkey(void)
     len = i2d_RSAPrivateKey(key, &der);
     assert(len > 0);
 
+    fprintf(stdout, "privkey_length = %d\n", len);
     hex_dump("privkey: ", buffer, len);
 
     BN_free(e);
@@ -60,11 +61,11 @@ static RSA *gen_privkey(void)
     len = i2d_RSAPublicKey(key, &der);
     assert(len > 0);
 
-    fprintf(stdout, "pubkey length = %d, expected = 398\n", len);
+    fprintf(stdout, "pubkey_length = %d, expected = 398\n", len);
     hex_dump("pubkey:  ", buffer, len);
 
     SHA256(buffer, len, buffer);
-    hex_dump("pubkey_hash: ", buffer, 32);
+    hex_dump("PKEY_HASH: ", buffer, 32);
     /*****************************************/
 
     return key;
@@ -135,6 +136,7 @@ static void gen_cert(RSA *key)
         len = i2d_X509(cert, &der);
         assert(len > 0);
 
+        fprintf(stdout, "X509_length = %d\n", len);
         hex_dump("x509: ", buffer, len);
     } while (0);
 
