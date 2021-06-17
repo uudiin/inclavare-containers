@@ -7,6 +7,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/asn1.h>
+#include <openssl/pem.h>
 
 
 static void hex_dump(const char *prefix, const void *p, unsigned int len)
