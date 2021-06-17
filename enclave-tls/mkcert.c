@@ -144,11 +144,11 @@ static void gen_cert(RSA *key)
     do {
         FILE *fp;
 
-        fp = fopen("priv.key", "r+b");;
+        fp = fopen("priv.key", "w+b");;
         PEM_write_PrivateKey(fp, pkey, NULL, NULL, 0, NULL, NULL);
         fclose(fp);
 
-        fp = fopen("cert.pem", "r+b");;
+        fp = fopen("cert.pem", "w+b");;
         PEM_write_X509(fp, cert);
         fclose(fp);
     } while (0);
