@@ -12,7 +12,9 @@ crypto_wrapper_err_t openssl_gen_privkey(crypto_wrapper_ctx_t *ctx,
 				uint8_t *privkey_buf, unsigned int *privkey_len)
 {
 	struct openssl_ctx *octx;
+	unsigned char *p = privkey_buf;
 	BIGNUM *e = NULL;
+	int len;
 	int ret;
 
 	ETLS_DEBUG("ctx %p, algo %d, privkey_buf %p, privkey_len %p\n",
@@ -21,7 +23,7 @@ crypto_wrapper_err_t openssl_gen_privkey(crypto_wrapper_ctx_t *ctx,
 	if (!ctx || !privkey_len)
 		return -CRYPTO_WRAPPER_ERR_INVALID;
 
-	if (privkey_buf == NULL && *privkey_len == 0)
+	if (privkey_buf == NULL && *privkey_len != 0)
 		return -CRYPTO_WRAPPER_ERR_INVALID;
 
 	if (algo != ENCLAVE_TLS_CERT_ALGO_RSA_3072_SHA256)
@@ -44,12 +46,17 @@ crypto_wrapper_err_t openssl_gen_privkey(crypto_wrapper_ctx_t *ctx,
 	if (!RSA_generate_key_ex(octx->key, 3072, e, NULL))
 		goto err;
 
+	len = i2d_RSAPrivateKey(octx->key, NULL);
+	if (len < 0)
+		goto err;
+
 	ret = -CRYPTO_WRAPPER_ERR_RSA_KEY_LEN;
-	int len = i2d_RSAPrivateKey(octx->key, NULL);
-	unsigned char buffer[len];
-	unsigned char *p = buffer;
-	if (privkey_buf)
-		p = privkey_buf;
+	if (p == NULL) {
+		*privkey_len = len;
+		return CRYPTO_WRAPPER_ERR_NONE;
+	} else if (*privkey_len < len)
+		goto err;
+
 	len = i2d_RSAPrivateKey(octx->key, &p);
 	if (len < 0)
 		goto err;
