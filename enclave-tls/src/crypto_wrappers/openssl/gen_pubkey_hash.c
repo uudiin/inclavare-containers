@@ -34,8 +34,8 @@ crypto_wrapper_err_t openssl_gen_pubkey_hash(crypto_wrapper_ctx_t *ctx,
 
 	SHA256(buffer, len, hash);
 
-	ETLS_DEBUG("the sha256 of public key %02x%02x%02x%02x%02x%02x%02x%02x...%02x%02x%02x%02x\n",
-		hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],
+	ETLS_DEBUG("the sha256 of public key [%d] %02x%02x%02x%02x%02x%02x%02x%02x...%02x%02x%02x%02x\n",
+		len, hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],
 		hash[28], hash[29], hash[30], hash[31]);
 
 	return CRYPTO_WRAPPER_ERR_NONE;

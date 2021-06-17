@@ -12,20 +12,45 @@ static int x509_extension_add(X509 *cert, const char *oid,
 			const void *data, size_t data_len)
 {
 	int nid;
-	ASN1_OCTET_STRING *octet;
-	X509_EXTENSION *ext;
+	ASN1_OCTET_STRING *octet = NULL;
+	X509_EXTENSION *ext = NULL;
+	int ret = -1;
 
 	nid = OBJ_create(oid, NULL, NULL);
+	if (nid == NID_undef) {
+		ETLS_DEBUG("obj create failed, %s\n", oid);
+		return ret;
+	}
 
 	octet = ASN1_OCTET_STRING_new();
+	if (!octet)
+		goto err;
+
 	ASN1_OCTET_STRING_set(octet, data, data_len);
-	X509_EXTENSION_create_by_NID(&ext, nid, 0, octet);
 
-	X509_add_ext(cert, ext, -1);
+	ext = X509_EXTENSION_create_by_NID(NULL, nid, 0, octet);
+	if (!ext) {
+		ETLS_DEBUG("extension create failed, %s\n", oid);
+		goto err;
+	}
 
-	X509_EXTENSION_free(ext);
-	ASN1_OCTET_STRING_free(octet);
-	return 0;
+	if (!X509_add_ext(cert, ext, -1)) {
+		ETLS_DEBUG("extension add failed, %s\n", oid);
+		goto err;
+	}
+
+	ret = 0;
+
+err:
+	ETLS_DEBUG("X509 extension add failed, %s, nid = %d\n", oid, nid);
+
+	if (ext)
+		X509_EXTENSION_free(ext);
+
+	if (octet)
+		ASN1_OCTET_STRING_free(octet);
+
+	return ret;
 }
 
 crypto_wrapper_err_t openssl_gen_cert(crypto_wrapper_ctx_t *ctx,
