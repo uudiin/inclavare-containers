@@ -13,7 +13,7 @@ static void hex_dump(const char *prefix, const void *p, unsigned int len)
 {
     char buffer[256];
     int i = 0;
-	const unsigned char *buf = p;
+    const unsigned char *buf = p;
 
     for ( ; len > 0; len--) {
         sprintf(&buffer[i * 2], "%02x", *buf++);
@@ -70,25 +70,27 @@ static RSA *gen_privkey(void)
 }
 
 static int x509_extension_add(X509 *cert, const char *oid,
-                const void *data, size_t data_len)
+        const void *data, size_t data_len)
 {
-	int nid;
-	ASN1_OCTET_STRING *octet;
-	X509_EXTENSION *ext;
+    int nid;
+    ASN1_OCTET_STRING *octet;
+    X509_EXTENSION *ext;
     int ret;
 
-	nid = OBJ_create(oid, NULL, NULL);
+    nid = OBJ_create(oid, NULL, NULL);
+    assert(nid != NID_undef);
 
-	octet = ASN1_OCTET_STRING_new();
-	ASN1_OCTET_STRING_set(octet, data, data_len);
-	X509_EXTENSION_create_by_NID(&ext, nid, 0, octet);
+    octet = ASN1_OCTET_STRING_new();
+    ASN1_OCTET_STRING_set(octet, data, data_len);
+    ext = X509_EXTENSION_create_by_NID(NULL, nid, 0, octet);
+    assert(ext);
 
-	ret = X509_add_ext(cert, ext, -1);
+    ret = X509_add_ext(cert, ext, -1);
     assert(ret);
 
-	X509_EXTENSION_free(ext);
-	ASN1_OCTET_STRING_free(octet);
-	return 0;
+    X509_EXTENSION_free(ext);
+    ASN1_OCTET_STRING_free(octet);
+    return 0;
 }
 
 static void gen_cert(RSA *key)
@@ -103,17 +105,17 @@ static void gen_cert(RSA *key)
 
     cert = X509_new();
     X509_set_version(cert, 2);
-	ASN1_INTEGER_set(X509_get_serialNumber(cert), 9527);
-	X509_gmtime_adj(X509_get_notBefore(cert), 0);
-	/* 10 years */
-	X509_gmtime_adj(X509_get_notAfter(cert), 3600 * 24 * 365 * 10);
+    ASN1_INTEGER_set(X509_get_serialNumber(cert), 9527);
+    X509_gmtime_adj(X509_get_notBefore(cert), 0);
+    /* 10 years */
+    X509_gmtime_adj(X509_get_notAfter(cert), 3600 * 24 * 365 * 10);
 
     X509_set_pubkey(cert, pkey);
 
     name = X509_get_subject_name(cert);
-	X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, "Alibaba", -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, "Cloud", -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, "Linux", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, "Alibaba", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, "Cloud", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, "Linux", -1, -1, 0);
     ret = X509_set_issuer_name(cert, name);
     assert(ret);
 
@@ -134,6 +136,20 @@ static void gen_cert(RSA *key)
 
         hex_dump("x509: ", buffer, len);
     } while (0);
+
+    /*******************************************/
+    do {
+        FILE *fp;
+
+        fp = fopen("priv.key", "r+b");;
+        PEM_write_PrivateKey(fp, pkey, NULL, NULL, 0, NULL, NULL);
+        fclose(fp);
+
+        fp = fopen("cert.pem", "r+b");;
+        PEM_write_X509(fp, cert);
+        fclose(fp);
+    } while (0);
+    /*******************************************/
 
     X509_free(cert);
     EVP_PKEY_free(pkey);
