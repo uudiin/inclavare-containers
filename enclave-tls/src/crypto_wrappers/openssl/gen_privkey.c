@@ -23,7 +23,7 @@ crypto_wrapper_err_t openssl_gen_privkey(crypto_wrapper_ctx_t *ctx,
 	if (!ctx || !privkey_len)
 		return -CRYPTO_WRAPPER_ERR_INVALID;
 
-	if (privkey_buf == NULL && *privkey_len != 0)
+	if (privkey_buf == NULL && privkey_len == NULL)
 		return -CRYPTO_WRAPPER_ERR_INVALID;
 
 	if (algo != ENCLAVE_TLS_CERT_ALGO_RSA_3072_SHA256)
