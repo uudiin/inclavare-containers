@@ -1,4 +1,7 @@
 
+#include <stdio.h>
+#include <assert.h>
+
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
@@ -23,7 +26,7 @@ static void hex_dump(const char *prefix, const void *p, unsigned int len)
     }
     if (i > 0) {
         buffer[i * 2] = '\0';
-        fprintf("%s%s\n", prefix, buffer);
+        fprintf(stdout, "%s%s\n", prefix, buffer);
     }
 }
 
