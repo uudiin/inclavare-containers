@@ -13,9 +13,6 @@ crypto_wrapper_err_t openssl_gen_pubkey_hash(crypto_wrapper_ctx_t *ctx,
  			enclave_tls_cert_algo_t algo, uint8_t *hash)
 {
 	struct openssl_ctx *octx;
-	unsigned char buffer[4096];
-	unsigned char *der = buffer;
-	int len;
 
 	ETLS_DEBUG("ctx %p, algo %d, hash %p\n", ctx, algo, hash);
 
@@ -27,7 +24,10 @@ crypto_wrapper_err_t openssl_gen_pubkey_hash(crypto_wrapper_ctx_t *ctx,
 
 	octx = ctx->crypto_private;
 
-	len = i2d_RSAPublicKey(octx->key, &der);
+	int len = i2d_RSAPublicKey(octx->key, NULL);
+	unsigned char buffer[len];
+	unsigned char *p = buffer;
+	len = i2d_RSAPublicKey(octx->key, &p);
 	if (len != RSA_PUBKEY_3072_RAW_LEN)
 		return -CRYPTO_WRAPPER_ERR_PUB_KEY_LEN;
 

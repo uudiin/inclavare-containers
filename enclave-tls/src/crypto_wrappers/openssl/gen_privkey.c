@@ -12,10 +12,7 @@ crypto_wrapper_err_t openssl_gen_privkey(crypto_wrapper_ctx_t *ctx,
 				uint8_t *privkey_buf, unsigned int *privkey_len)
 {
 	struct openssl_ctx *octx;
-	unsigned char buffer[4096];
-	unsigned char *der = buffer;
 	BIGNUM *e = NULL;
-	int len;
 	int ret;
 
 	ETLS_DEBUG("ctx %p, algo %d, privkey_buf %p, privkey_len %p\n",
@@ -48,9 +45,12 @@ crypto_wrapper_err_t openssl_gen_privkey(crypto_wrapper_ctx_t *ctx,
 		goto err;
 
 	ret = -CRYPTO_WRAPPER_ERR_RSA_KEY_LEN;
+	int len = i2d_RSAPrivateKey(octx->key, NULL);
+	unsigned char buffer[len];
+	unsigned char *p = buffer;
 	if (privkey_buf)
-		der = privkey_buf;
-	len = i2d_RSAPrivateKey(octx->key, &der);
+		p = privkey_buf;
+	len = i2d_RSAPrivateKey(octx->key, &p);
 	if (len < 0)
 		goto err;
 

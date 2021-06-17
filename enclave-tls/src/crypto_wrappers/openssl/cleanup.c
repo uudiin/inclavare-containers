@@ -15,7 +15,6 @@ crypto_wrapper_err_t openssl_cleanup(crypto_wrapper_ctx_t *ctx)
 	struct openssl_ctx *octx = ctx->crypto_private;
 
 	/* octx->key has been freed by EVP_PKEY_free() */
-
 	free(octx);
 
 	return CRYPTO_WRAPPER_ERR_NONE;

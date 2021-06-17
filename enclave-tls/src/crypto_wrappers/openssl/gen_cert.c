@@ -8,17 +8,19 @@
 #include <enclave-tls/crypto_wrapper.h>
 #include "openssl.h"
 
+#define CERT_SERIAL_NUMBER 9527
+
 static int x509_extension_add(X509 *cert, const char *oid,
-			const void *data, size_t data_len)
+			      const void *data, size_t data_len)
 {
 	int nid;
 	ASN1_OCTET_STRING *octet = NULL;
 	X509_EXTENSION *ext = NULL;
-	int ret = -1;
+	int ret = 0;
 
 	nid = OBJ_create(oid, NULL, NULL);
 	if (nid == NID_undef) {
-		ETLS_DEBUG("obj create failed, %s\n", oid);
+		ETLS_DEBUG("failed to create the object, %s\n", oid);
 		return ret;
 	}
 
@@ -39,10 +41,10 @@ static int x509_extension_add(X509 *cert, const char *oid,
 		goto err;
 	}
 
-	ret = 0;
+	ret = 1;
 
 err:
-	if (ret == -1)
+	if (ret == 0)
 		ETLS_DEBUG("X509 extension add failed, %s, nid = %d\n", oid, nid);
 
 	if (ext)
@@ -86,8 +88,9 @@ crypto_wrapper_err_t openssl_gen_cert(crypto_wrapper_ctx_t *ctx,
 	if (!cert)
 		goto err;
 
-	X509_set_version(cert, 2);
-	ASN1_INTEGER_set(X509_get_serialNumber(cert), 9527);
+	X509_set_version(cert, 3);
+	ASN1_INTEGER_set(X509_get_serialNumber(cert), CERT_SERIAL_NUMBER);
+	/* 0 indicate start from the current time */
 	X509_gmtime_adj(X509_get_notBefore(cert), 0);
 	/* 10 years */
 	X509_gmtime_adj(X509_get_notAfter(cert), 3600 * 24 * 365 * 10);
@@ -115,27 +118,36 @@ crypto_wrapper_err_t openssl_gen_cert(crypto_wrapper_ctx_t *ctx,
 
 	ETLS_DEBUG("evidence type '%s' requested\n", cert_info->evidence.type);
 
-	if (strcmp(cert_info->evidence.type, "sgx_epid") == 0) {
+	if (!strcmp(cert_info->evidence.type, "sgx_epid")) {
 		attestation_verification_report_t *epid = &cert_info->evidence.epid;
 
-		x509_extension_add(cert, "1.2.840.113741.1337.2",
-				epid->ias_report, epid->ias_report_len);
-		x509_extension_add(cert, "1.2.840.113741.1337.3",
-				epid->ias_sign_ca_cert, epid->ias_sign_ca_cert_len);
-		x509_extension_add(cert, "1.2.840.113741.1337.4",
-				epid->ias_sign_cert, epid->ias_sign_cert_len);
-		x509_extension_add(cert, "1.2.840.113741.1337.5",
-				epid->ias_report_signature, epid->ias_report_signature_len);
-	} else if (strcmp(cert_info->evidence.type, "sgx_ecdsa") == 0) {
+		if (!x509_extension_add(cert, "1.2.840.113741.1337.2",
+				epid->ias_report, epid->ias_report_len))
+			goto err;
+
+		if (!x509_extension_add(cert, "1.2.840.113741.1337.3",
+				epid->ias_sign_ca_cert, epid->ias_sign_ca_cert_len))
+			goto err;
+
+		if (!x509_extension_add(cert, "1.2.840.113741.1337.4",
+				epid->ias_sign_cert, epid->ias_sign_cert_len))
+			goto err;
+
+		if (!x509_extension_add(cert, "1.2.840.113741.1337.5",
+				epid->ias_report_signature, epid->ias_report_signature_len))
+			goto err;
+	} else if (!strcmp(cert_info->evidence.type, "sgx_ecdsa")) {
 		ecdsa_attestation_evidence_t *ecdsa = &cert_info->evidence.ecdsa;
 
-		x509_extension_add(cert, "1.2.840.113741.1337.6",
-				ecdsa->quote, ecdsa->quote_len);
-	} else if (strcmp(cert_info->evidence.type, "sgx_la") == 0) {
+		if (!x509_extension_add(cert, "1.2.840.113741.1337.6",
+				ecdsa->quote, ecdsa->quote_len))
+			goto err;
+	} else if (!strcmp(cert_info->evidence.type, "sgx_la")) {
 		la_attestation_evidence_t *la = &cert_info->evidence.la;
 
-		x509_extension_add(cert, "1.2.840.113741.1337.14",
-				la->report, la->report_len);
+		if (!x509_extension_add(cert, "1.2.840.113741.1337.14",
+				la->report, la->report_len))
+			goto err;
 	}
 
 	ret = -CRYPTO_WRAPPER_ERR_CERT;
